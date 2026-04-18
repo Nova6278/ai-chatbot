@@ -5,6 +5,11 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const BOT_AVATAR = "🤖";
 const USER_AVATAR = "👤";
 
+const FETCH_HEADERS = {
+  "Content-Type": "application/json",
+  "ngrok-skip-browser-warning": "true",
+};
+
 const SUGGESTED_QUESTIONS = [
   "What can you help me with?",
   "Tell me about your features",
@@ -92,7 +97,7 @@ export default function App() {
 
       const response = await fetch(`${API_URL}/chat/stream`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: FETCH_HEADERS,
         body: JSON.stringify(payload),
       });
 
@@ -152,7 +157,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl flex flex-col" style={{ height: "90vh" }}>
-        
+
         {/* Header */}
         <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl mb-3 px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -247,7 +252,7 @@ export default function App() {
         </div>
 
         <p className="text-center text-white/30 text-xs mt-2">
-          Built with AWS Bedrock · Claude 3 Haiku
+          Built with AWS Bedrock · Meta Llama 3
         </p>
       </div>
     </div>
