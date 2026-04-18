@@ -5,6 +5,10 @@
 **Live Demo:** [ai-chatbot-nine-gold-55.vercel.app](https://ai-chatbot-nine-gold-55.vercel.app) 
 **GitHub:** [github.com/Nova6278/ai-chatbot](https://github.com/Nova6278/ai-chatbot)
 
+⚠️ Note: Backend is hosted locally via tunnel.
+If the live demo is unavailable, please check back 
+after a few minutes or contact me at rajdeepoff78@gmail.com
+
 ---
 
 ## 📌 Table of Contents
