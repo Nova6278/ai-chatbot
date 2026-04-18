@@ -2,6 +2,7 @@
 
 > A real-time streaming AI chatbot built with FastAPI and React, powered by Meta Llama 3 via AWS Bedrock. Features server-sent events for live token streaming, suggested prompts, and a clean glassmorphism UI.
 
+**Live Demo:** [ai-chatbot-nine-gold-55.vercel.app](https://ai-chatbot-nine-gold-55.vercel.app) 
 **GitHub:** [github.com/Nova6278/ai-chatbot](https://github.com/Nova6278/ai-chatbot)
 
 ---
