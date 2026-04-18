@@ -1,0 +1,20 @@
+# Environment variables - NEVER commit these
+backend/.env
+frontend/.env
+.env
+
+# Python
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/.pytest_cache/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDE
+.vscode/settings.json
+.idea/
+*.DS_Store
