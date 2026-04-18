@@ -1,151 +1,306 @@
-# 🤖 AI Chatbot – AWS Bedrock + React
+# 🤖 Nova — AI Chatbot powered by AWS Bedrock
 
-A production-ready AI chatbot powered by **AWS Bedrock (Claude 3)** with a React frontend and FastAPI backend.
+> A real-time streaming AI chatbot built with FastAPI and React, powered by Meta Llama 3 via AWS Bedrock. Features server-sent events for live token streaming, suggested prompts, and a clean glassmorphism UI.
+
+**GitHub:** [github.com/Nova6278/ai-chatbot](https://github.com/Nova6278/ai-chatbot)
+
+---
+
+## 📌 Table of Contents
+
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [API Endpoints](#api-endpoints)
+- [Project Structure](#project-structure)
+- [Local Setup Guide](#local-setup-guide)
+- [Environment Variables](#environment-variables)
+- [How Streaming Works](#how-streaming-works)
+
+---
+
+## ✨ Features
+
+- **Real-time Streaming** — Responses stream token-by-token via Server-Sent Events (SSE), just like ChatGPT
+- **AWS Bedrock Integration** — Powered by Meta Llama 3 8B running on AWS Bedrock (no OpenAI dependency)
+- **Multi-turn Conversations** — Full conversation history sent with every request for contextual replies
+- **Suggested Questions** — Quick-start prompts shown on first load
+- **Typing Indicator** — Animated dots while waiting for the first token
+- **Live Cursor** — Blinking cursor during streaming to indicate active generation
+- **Clear Chat** — Reset conversation with one click
+- **Customizable Persona** — Bot personality configurable via environment variable
+
+---
+
+## 🛠 Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18, Vite, Tailwind CSS |
+| Backend | Python, FastAPI, Uvicorn |
+| AI Model | Meta Llama 3 8B Instruct (AWS Bedrock) |
+| Streaming | Server-Sent Events (SSE) |
+| AWS SDK | boto3 |
+| Env Config | python-dotenv |
+
+---
+
+## 🏗 Architecture
+
+```
+┌──────────────────────┐         ┌─────────────────────┐
+│   React Frontend     │ ──SSE──▶│   FastAPI Backend    │
+│   (Vite dev server)  │◀────────│   Port 8000          │
+└──────────────────────┘         └──────────┬──────────┘
+                                             │  boto3
+                                             ▼
+                                  ┌─────────────────────┐
+                                  │    AWS Bedrock       │
+                                  │  Meta Llama 3 8B     │
+                                  └─────────────────────┘
+```
+
+**Streaming Flow:**
+1. User sends message → Frontend POSTs full conversation history to `/chat/stream`
+2. Backend formats prompt in Llama 3 chat template and calls Bedrock streaming API
+3. Bedrock streams tokens back → FastAPI yields SSE chunks
+4. Frontend reads the stream, appends tokens in real-time to the UI
+5. On `[DONE]` signal → stream closes, final message saved to state
+
+---
+
+## 📡 API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | Health check, confirms API is running |
+| GET | `/health` | Returns status + active model ID |
+| POST | `/chat` | Non-streaming chat (returns full response) |
+| POST | `/chat/stream` | **Streaming chat via SSE** (main endpoint) |
+| GET | `/models` | Lists available Bedrock models |
+
+### Request format for `/chat` and `/chat/stream`
+
+```json
+{
+  "messages": [
+    { "role": "user", "content": "Hello!" },
+    { "role": "assistant", "content": "Hi! How can I help?" },
+    { "role": "user", "content": "What is AWS Bedrock?" }
+  ],
+  "stream": true
+}
+```
+
+### SSE Response format
+
+```
+data: {"text": "AWS"}
+data: {"text": " Bedrock"}
+data: {"text": " is"}
+...
+data: [DONE]
+```
 
 ---
 
 ## 📁 Project Structure
 
 ```
-chatbot/
+ai-chatbot/
 ├── backend/
-│   ├── main.py           ← FastAPI backend
+│   ├── main.py           ← FastAPI app (all routes + Bedrock integration)
 │   ├── requirements.txt  ← Python dependencies
-│   └── .env              ← AWS credentials (DO NOT COMMIT)
-├── frontend/
-│   ├── src/
-│   │   ├── App.jsx       ← Main chatbot UI
-│   │   ├── main.jsx      ← React entry point
-│   │   └── index.css     ← Tailwind styles
-│   ├── index.html
-│   ├── package.json
-│   ├── vite.config.js
-│   ├── tailwind.config.js
-│   ├── postcss.config.js
-│   └── .env              ← Frontend env vars
-└── README.md
+│   └── .env              ← AWS credentials (not committed)
+└── frontend/
+    ├── src/
+    │   ├── App.jsx       ← Full chatbot UI with streaming
+    │   ├── main.jsx      ← React entry point
+    │   └── index.css     ← Tailwind base styles
+    ├── index.html
+    ├── package.json
+    ├── vite.config.js
+    ├── tailwind.config.js
+    └── .env              ← Frontend API URL config
 ```
 
 ---
 
-## 🔑 Step 1: Get Your AWS Keys
+## 💻 Local Setup Guide
 
-1. Go to **AWS Console** → https://console.aws.amazon.com
-2. Navigate to **IAM** → **Users** → Your user → **Security credentials**
-3. Click **Create access key** → Choose "Local code"
-4. Copy `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
+### Prerequisites
 
-### Enable AWS Bedrock Claude 3:
-1. Go to **AWS Console** → **Amazon Bedrock**
-2. In left sidebar: **Model access** → **Manage model access**
-3. Check **Anthropic Claude 3 Haiku** → **Save changes**
-4. Wait ~2 minutes for approval
-
-> ✅ You already have Bedrock access — just enable Claude 3 Haiku model!
+- Python 3.9+
+- Node.js 18+
+- An AWS account with Bedrock access
+- AWS IAM credentials (Access Key + Secret Key)
 
 ---
 
-## ⚙️ Step 2: Configure Backend
+### Step 1 — Clone the repo
 
-Edit `backend/.env`:
-
-```env
-AWS_ACCESS_KEY_ID=AKIA...your_key
-AWS_SECRET_ACCESS_KEY=your_secret
-AWS_REGION=us-east-1
-BEDROCK_MODEL_ID=anthropic.claude-3-haiku-20240307-v1:0
-CHATBOT_SYSTEM_PROMPT=You are a helpful AI assistant for our company website...
+```bash
+git clone https://github.com/Nova6278/ai-chatbot.git
+cd ai-chatbot
 ```
 
 ---
 
-## 🚀 Step 3: Run the Backend
+### Step 2 — Enable AWS Bedrock Model Access
+
+1. Go to [console.aws.amazon.com](https://console.aws.amazon.com)
+2. Search for **Amazon Bedrock** in the top bar
+3. Click **Model access** in the left sidebar
+4. Click **Manage model access**
+5. Enable **Meta Llama 3 8B Instruct**
+6. Click **Save changes** (takes ~1 minute to activate)
+
+---
+
+### Step 3 — Get AWS Credentials
+
+1. Go to **IAM** → **Users** → your user → **Security credentials**
+2. Click **Create access key** → select **Local code**
+3. Copy both the **Access Key ID** and **Secret Access Key**
+
+---
+
+### Step 4 — Configure Backend
 
 ```bash
 cd backend
+```
 
-# Create virtual environment
+Create a `.env` file:
+
+```env
+AWS_ACCESS_KEY_ID=your_access_key_here
+AWS_SECRET_ACCESS_KEY=your_secret_key_here
+AWS_REGION=us-east-1
+
+BEDROCK_MODEL_ID=meta.llama3-8b-instruct-v1:0
+
+CHATBOT_SYSTEM_PROMPT=You are a helpful, friendly, and intelligent AI assistant. You provide clear, accurate, and concise responses. Always be polite and professional.
+```
+
+---
+
+### Step 5 — Start the Backend
+
+```bash
+# Create and activate virtual environment
 python -m venv venv
-source venv/bin/activate        # Mac/Linux
-# OR: venv\Scripts\activate     # Windows
+
+# Windows
+venv\Scripts\activate
+# Mac/Linux
+source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Start server
+# Start the server
 uvicorn main:app --reload --port 8000
 ```
 
-✅ Backend running at: http://localhost:8000
-📖 API docs at: http://localhost:8000/docs
+✅ You should see:
+```
+INFO: Uvicorn running on http://127.0.0.1:8000
+```
+
+Test it: open [http://localhost:8000/health](http://localhost:8000/health) in your browser.
 
 ---
 
-## 🎨 Step 4: Run the Frontend
+### Step 6 — Configure Frontend
 
 ```bash
-cd frontend
+cd ../frontend
+```
 
-# Install dependencies
+Create a `.env` file:
+
+```env
+VITE_API_URL=http://localhost:8000
+```
+
+---
+
+### Step 7 — Start the Frontend
+
+```bash
 npm install
-
-# Start dev server
 npm run dev
 ```
 
-✅ Frontend running at: http://localhost:3000
+✅ Open [http://localhost:5173](http://localhost:5173) — start chatting!
 
 ---
 
-## 🐳 Docker (Optional — Skip if time-pressed)
+## 🔐 Environment Variables
 
-```bash
-# From project root (not needed for submission)
-docker-compose up
+### Backend (`backend/.env`)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `AWS_ACCESS_KEY_ID` | ✅ | AWS IAM access key |
+| `AWS_SECRET_ACCESS_KEY` | ✅ | AWS IAM secret key |
+| `AWS_REGION` | ✅ | AWS region (e.g. `us-east-1`) |
+| `BEDROCK_MODEL_ID` | ✅ | Bedrock model ID (default: Llama 3 8B) |
+| `CHATBOT_SYSTEM_PROMPT` | Optional | Custom bot personality/instructions |
+
+### Frontend (`frontend/.env`)
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_API_URL` | Backend URL (default: `http://localhost:8000`) |
+
+---
+
+## ⚙️ How Streaming Works
+
+The backend uses FastAPI's `StreamingResponse` with `text/event-stream` media type. When Bedrock streams tokens back via `invoke_model_with_response_stream`, each chunk is immediately yielded to the frontend as an SSE event:
+
+```python
+async def generate():
+    response = bedrock.invoke_model_with_response_stream(...)
+    for event in response["body"]:
+        chunk_data = json.loads(event["chunk"]["bytes"])
+        text = chunk_data.get("generation", "")
+        if text:
+            yield f"data: {json.dumps({'text': text})}\n\n"
+    yield "data: [DONE]\n\n"
+
+return StreamingResponse(generate(), media_type="text/event-stream")
 ```
 
----
-
-## 🧪 Test the API directly
-
-```bash
-curl -X POST http://localhost:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{"messages": [{"role": "user", "content": "Hello!"}]}'
-```
+The frontend reads the stream using the `ReadableStream` API and appends tokens to the UI in real time, with a blinking cursor to indicate active generation.
 
 ---
 
-## 📦 Features
+## 🔄 Available Models
 
-- ✅ **Real-time streaming** responses
-- ✅ **AWS Bedrock** (Claude 3 Haiku) powered
-- ✅ **Conversation history** preserved
-- ✅ **Suggested questions** for new users
-- ✅ **Beautiful dark UI** with glassmorphism
-- ✅ **Error handling** + retry support
-- ✅ **Customizable system prompt** via .env
+You can switch the model in `backend/.env`:
 
----
-
-## 🗂️ Files to NOT commit
-
-Add to `.gitignore`:
-```
-backend/.env
-frontend/.env
-backend/venv/
-node_modules/
-__pycache__/
-```
+| Model ID | Name | Notes |
+|----------|------|-------|
+| `meta.llama3-8b-instruct-v1:0` | Meta Llama 3 8B | Default — fast, free tier |
+| `meta.llama3-70b-instruct-v1:0` | Meta Llama 3 70B | More capable, slower |
+| `anthropic.claude-3-haiku-20240307-v1:0` | Claude 3 Haiku | Requires Anthropic access |
 
 ---
 
-## ✅ Submission Checklist
+## 🚨 Common Errors
 
-- [ ] Backend running and tested
-- [ ] Frontend chatbot works
-- [ ] Streaming responses working
-- [ ] Custom system prompt configured
-- [ ] README complete
-- [ ] Screenshots taken for submission
+| Error | Fix |
+|-------|-----|
+| `Could not connect to backend` | Make sure uvicorn is running on port 8000 |
+| `AccessDeniedException` | Enable the model in Bedrock Model Access |
+| `InvalidClientTokenId` | Double-check AWS keys in `backend/.env` |
+| `ValidationException` | Wrong model ID format — check the table above |
+
+---
+
+## 👤 Author
+
+**Rajdeep** — [@Nova6278](https://github.com/Nova6278)
